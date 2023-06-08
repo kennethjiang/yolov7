@@ -1,0 +1,13 @@
+version: '2.4'
+
+services:
+  ml:
+    hostname: ml
+    runtime: nvidia
+    restart: unless-stopped
+    build:
+      context: .
+    tty: true
+    volumes:
+      - ./:/app
+    command: bash -c "sleep 1000000"
