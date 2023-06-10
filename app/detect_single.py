@@ -22,20 +22,18 @@ def load_model(model_path, device):
 
     return model, stride
 
-def detect_single(model, device, stride, img_path, img_size=800, conf=0.1, iou=0.65):
+def detect_single(model, device, stride, img0, img_size=800, conf=0.1, iou=0.65):
     """
     Detects objects in a single image
     :param model: the model to use
     :param device: the device to use, accept string 'cpu' or 'cuda'
     :param stride: the stride of the model
-    :param img_path: the path to the image
+    :param img0: Image
     :param img_size: the size of the image
     :param conf: the confidence threshold
     :param iou: the iou threshold
     :return: the predictions before and after nms, as a list of lists
     """
-    # get the original image
-    img0 = cv2.imread(img_path)
 
     # get the whwh of the original image
     gn = torch.tensor(img0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
@@ -97,7 +95,9 @@ if __name__ == '__main__':
     start_time = time.time()
 
     for img_path in img_files:
-        pred, pred_after = detect_single(model, opt.device, stride, os.path.join(opt.img_path, img_path), opt.img_size, opt.conf_thres, opt.iou_thres)
+        # get the original image
+        img0 = cv2.imread(os.path.join(opt.img_path, img_path))
+        pred, pred_after = detect_single(model, opt.device, stride, img0, opt.img_size, opt.conf_thres, opt.iou_thres)
         print(img_path, ': ',  pred_after)
 
     print("Time taken:", time.time() - start_time, "seconds")
