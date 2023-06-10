@@ -90,7 +90,7 @@ if __name__ == '__main__':
     model, stride = load_model(opt.weights, opt.device)
 
     if os.path.isdir(opt.img_path):
-        img_files = [file for file in os.listdir(input1_value) if file.endswith('.jpg')]
+        img_files = [file for file in os.listdir(opt.img_path) if file.endswith('.jpg')]
     else:
         img_files = [opt.img_path]
     
