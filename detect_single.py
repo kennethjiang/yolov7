@@ -97,7 +97,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     for img_path in img_files:
-        pred, pred_after = detect_single(model, opt.device, stride, opt.img_path, opt.img_size, opt.conf_thres, opt.iou_thres)
+        pred, pred_after = detect_single(model, opt.device, stride, os.path.join(opt.img_path, img_path), opt.img_size, opt.conf_thres, opt.iou_thres)
         print(img_path, ': ',  pred_after)
 
     print("Time taken:", time.time() - start_time, "seconds")
