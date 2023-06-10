@@ -35,9 +35,6 @@ def detect_single(model, device, stride, img0, img_size=800, conf=0.1, iou=0.65)
     :return: the predictions before and after nms, as a list of lists
     """
 
-    # get the whwh of the original image
-    gn = torch.tensor(img0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-
     # on cuda, use half precision
     half = device != 'cpu'
 
@@ -89,7 +86,7 @@ if __name__ == '__main__':
     print('after load_model')
 
     if os.path.isdir(opt.img_path):
-        img_files = [file for file in os.listdir(opt.img_path) if file.endswith('.jpg')]
+        img_files = [os.path.join(opt.img_path, file) for file in os.listdir(opt.img_path) if file.endswith('.jpg')]
     else:
         img_files = [opt.img_path]
     
@@ -97,7 +94,7 @@ if __name__ == '__main__':
 
     for img_path in img_files:
         # get the original image
-        img0 = cv2.imread(os.path.join(opt.img_path, img_path))
+        img0 = cv2.imread(img_path)
         pred, pred_after = detect_single(model, opt.device, stride, img0, opt.img_size, opt.conf_thres, opt.iou_thres)
         print(img_path, ': ',  pred_after)
 
