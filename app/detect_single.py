@@ -84,8 +84,9 @@ if __name__ == '__main__':
     print(opt)
     #check_requirements(exclude=('pycocotools', 'thop'))
 
-
+    print('before load_model')
     model, stride = load_model(opt.weights, opt.device)
+    print('after load_model')
 
     if os.path.isdir(opt.img_path):
         img_files = [file for file in os.listdir(opt.img_path) if file.endswith('.jpg')]

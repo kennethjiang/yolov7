@@ -13,3 +13,4 @@ services:
     ports:
       - "5000:5000"
     command: bash -c "sleep 1000000"
+        #command: bash -c "./runapp.sh"

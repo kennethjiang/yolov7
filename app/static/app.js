@@ -8,7 +8,7 @@ $(document).ready(function() {
                 $("#overlay").text(text);
                 $("#image").attr("src", imageUrl);
             // Call the function again after a certain delay
-            setTimeout(updateImageAndText, 0); // Repeat the API call every 5 seconds
+            //setTimeout(updateImageAndText, 0); // Repeat the API call every 5 seconds
             });
         });
     }
