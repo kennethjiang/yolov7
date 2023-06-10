@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/l4t-pytorch:r32.7.1-pth1.9-py3
+FROM nvcr.io/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3
 #ENV DEBIAN_FRONTEND=noninteractive
 # https://docs.nvidia.com/deeplearning/frameworks/install-pytorch-jetson-platform/index.html#overview
 #RUN apt update && apt install -y autoconf bc build-essential g++-8 gcc-8 clang-8 lld-8 gettext-base gfortran-8 iputils-ping libbz2-dev libc++-dev libcgal-dev libffi-dev libfreetype6-dev libhdf5-dev libjpeg-dev liblzma-dev libncurses5-dev libncursesw5-dev libpng-dev libreadline-dev libssl-dev libsqlite3-dev libxml2-dev libxslt-dev locales moreutils openssl python-openssl rsync scons python3-pip libopenblas-dev
