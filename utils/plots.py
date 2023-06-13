@@ -17,6 +17,7 @@ import torch
 import yaml
 from PIL import Image, ImageDraw, ImageFont
 from scipy.signal import butter, filtfilt
+from shapely.geometry import Polygon
 
 from utils.general import xywh2xyxy, xyxy2xywh
 from utils.metrics import fitness
@@ -431,8 +432,8 @@ def plot_results(start=0, stop=0, bucket='', id=(), labels=(), save_dir=''):
 
     ax[1].legend()
     fig.savefig(Path(save_dir) / 'results.png', dpi=200)
-    
-    
+
+
 def output_to_keypoint(output):
     # Convert model output to target format [batch_id, class_id, x, y, w, h, conf]
     targets = []
@@ -487,3 +488,74 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
         if pos2[0] % 640 == 0 or pos2[1] % 640 == 0 or pos2[0]<0 or pos2[1]<0:
             continue
         cv2.line(im, pos1, pos2, (int(r), int(g), int(b)), thickness=2)
+
+
+def merge_overlapping_rectangles(rectangles):
+    merged = False
+
+    for i in range(len(rectangles)):
+        if merged:
+            break
+
+        for j in range(i + 1, len(rectangles)):
+            if rectangles[i][0].intersects(rectangles[j][0]):
+                merged = True
+                rectangles[i][0] = rectangles[i][0].union(rectangles[j][0])
+                rectangles[i][1] = max(rectangles[i][1], rectangles[j][1])
+                rectangles.pop(j)
+                break
+
+    if merged:
+        return merge_overlapping_rectangles(rectangles)
+
+    return rectangles
+
+# Draw polygon with radial gradient from point to the polygon border
+# ranging from color 1 to color 2 on given image
+def radial_gradient(i, poly, p, c1, c2):
+
+    # Draw initial polygon, alpha channel only, on an empty canvas of image size
+    ii = Image.new('RGBA', i.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(ii)
+    draw.polygon(poly, fill=(255, 255, 255), outline=None)
+
+    # Use polygon vertex with highest distance to given point as end of gradient
+    p = np.array(p)
+    max_dist = max([np.linalg.norm(np.array(v) - p) for v in poly])
+
+    # Calculate color values (gradient) for the whole canvas
+    x, y = np.meshgrid(np.arange(i.size[0]), np.arange(i.size[1]))
+    c = np.linalg.norm(np.stack((x, y), axis=2) - p, axis=2) / max_dist
+#     c = np.tile(np.expand_dims(c, axis=2), [1, 1, 3])
+    c = np.expand_dims(c, axis=2)
+    c = (c1 * (1 - c) + c2 * c).astype(np.uint8)
+    c = Image.fromarray(c)
+
+    # Paste gradient on temporary image
+    ii.paste(c, mask=ii)
+
+    # Paste temporary image on actual image
+    i.paste(ii, mask=ii)
+
+    return i
+
+def plot_detections_color_coded(image, dets):
+    rectangles = []
+
+    for det in dets:
+        coordinates = det[0:4]
+        polygon = Polygon([(coordinates[0], coordinates[1]), (coordinates[2], coordinates[1]),
+                           (coordinates[2], coordinates[3]), (coordinates[0], coordinates[3])])
+
+        rectangles.append([polygon, det[4]])
+
+    merged = merge_overlapping_rectangles(rectangles.copy())
+
+    for polygon, conf in merged:
+        polygon = polygon.buffer(20).buffer(-10)
+
+        point = polygon.centroid.coords
+        color1 = (255, 255*(1-conf), 0, 200)
+        color2 = (255, 255*(1-conf), 0, 0)
+        radial_gradient(image, list(polygon.exterior.coords), point, color1, color2)
+
