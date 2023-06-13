@@ -102,6 +102,7 @@ def detect(save_img=False):
             else:
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
+            original_im = im0.copy()
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
@@ -133,7 +134,10 @@ def detect(save_img=False):
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
+                # cv2.imshow(str(p) + ' - Original', original_im)
+                key_pressed = cv2.waitKey(1)  # 1 millisecond
+                if key_pressed >= 0:
+                    cv2.waitKey(0)
 
             # Save results (image with detections)
             if save_img:
