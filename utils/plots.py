@@ -512,10 +512,10 @@ def merge_overlapping_rectangles(rectangles):
 
 # Draw polygon with radial gradient from point to the polygon border
 # ranging from color 1 to color 2 on given image
-def radial_gradient(i, poly, p, c1, c2):
+def radial_gradient(width, height, poly, p, c1, c2):
 
     # Draw initial polygon, alpha channel only, on an empty canvas of image size
-    ii = Image.new('RGBA', i.size, (0, 0, 0, 0))
+    ii = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(ii)
     draw.polygon(poly, fill=(255, 255, 255), outline=None)
 
@@ -524,7 +524,7 @@ def radial_gradient(i, poly, p, c1, c2):
     max_dist = max([np.linalg.norm(np.array(v) - p) for v in poly])
 
     # Calculate color values (gradient) for the whole canvas
-    x, y = np.meshgrid(np.arange(i.size[0]), np.arange(i.size[1]))
+    x, y = np.meshgrid(np.arange(width), np.arange(height))
     c = np.linalg.norm(np.stack((x, y), axis=2) - p, axis=2) / max_dist
 #     c = np.tile(np.expand_dims(c, axis=2), [1, 1, 3])
     c = np.expand_dims(c, axis=2)
@@ -534,16 +534,16 @@ def radial_gradient(i, poly, p, c1, c2):
     # Paste gradient on temporary image
     ii.paste(c, mask=ii)
 
-    # Paste temporary image on actual image
-    i.paste(ii, mask=ii)
-
-    return i
+    return ii
 
 def plot_detections_color_coded(image, dets):
+    im_rgb = Image.fromarray(image)
+
     rectangles = []
 
     for det in dets:
         coordinates = det[0:4]
+        coordinates = [x//2 for x in coordinates]
         polygon = Polygon([(coordinates[0], coordinates[1]), (coordinates[2], coordinates[1]),
                            (coordinates[2], coordinates[3]), (coordinates[0], coordinates[3])])
 
@@ -555,7 +555,9 @@ def plot_detections_color_coded(image, dets):
         polygon = polygon.buffer(20).buffer(-10)
 
         point = polygon.centroid.coords
-        color1 = (255, 255*(1-conf), 0, 200)
-        color2 = (255, 255*(1-conf), 0, 0)
-        radial_gradient(image, list(polygon.exterior.coords), point, color1, color2)
+        color1 = (0, 255*(1-conf), 255, 200)
+        color2 = (0, 255*(1-conf), 255, 0)
+        img1 = radial_gradient(im_rgb.size[0]//2, im_rgb.size[1]//2, list(polygon.exterior.coords), point, color1, color2).resize(im_rgb.size,  resample=Image.LANCZOS)
+        im_rgb.paste(img1, mask=img1)
 
+    return im_rgb
