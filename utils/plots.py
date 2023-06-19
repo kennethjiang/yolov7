@@ -510,54 +510,67 @@ def merge_overlapping_rectangles(rectangles):
 
     return rectangles
 
-# Draw polygon with radial gradient from point to the polygon border
-# ranging from color 1 to color 2 on given image
-def radial_gradient(width, height, poly, p, c1, c2):
+def generate_heatmap(image, dets, downsample):
+    height, width, _ = image.shape
 
-    # Draw initial polygon, alpha channel only, on an empty canvas of image size
-    ii = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(ii)
-    draw.polygon(poly, fill=(255, 255, 255), outline=None)
+    # Calculate the dimensions of the downsampled heatmap
+    heatmap_width = width // downsample
+    heatmap_height = height // downsample
 
-    # Use polygon vertex with highest distance to given point as end of gradient
-    p = np.array(p)
-    max_dist = max([np.linalg.norm(np.array(v) - p) for v in poly])
+    # Create an empty heatmap
+    heatmap = np.zeros((heatmap_height, heatmap_width))
 
-    # Calculate color values (gradient) for the whole canvas
-    x, y = np.meshgrid(np.arange(width), np.arange(height))
-    c = np.linalg.norm(np.stack((x, y), axis=2) - p, axis=2) / max_dist
-#     c = np.tile(np.expand_dims(c, axis=2), [1, 1, 3])
-    c = np.expand_dims(c, axis=2)
-    c = (c1 * (1 - c) + c2 * c).astype(np.uint8)
-    c = Image.fromarray(c)
+    # Iterate over each downsampled pixel in the heatmap
+    for y in range(heatmap_height):
+        for x in range(heatmap_width):
+            # Calculate the average value for the downsampled pixel
+            max_value = 0
 
-    # Paste gradient on temporary image
-    ii.paste(c, mask=ii)
 
-    return ii
+            # Check if the downscaled pixel is within any of the boxes
+            for det in dets:
+                top_left_x, top_left_y, bottom_right_x, bottom_right_y, value, _ = det
+
+                top_left_x /= downsample
+                top_left_y /= downsample
+                bottom_right_x /= downsample
+                bottom_right_y /= downsample
+
+                if top_left_x <= x <= bottom_right_x and top_left_y <= y <= bottom_right_y:
+                    max_value = max(max_value, value)
+
+            heatmap[y, x] = max_value
+
+    return heatmap
 
 def plot_detections_color_coded(image, dets):
-    im_rgb = Image.fromarray(image)
+    downsample = 24
+    heatmap = generate_heatmap(image, dets, downsample)
+    normalized_heatmap = heatmap
 
-    rectangles = []
+    cmap = "jet"
 
-    for det in dets:
-        coordinates = det[0:4]
-        coordinates = [x//2 for x in coordinates]
-        polygon = Polygon([(coordinates[0], coordinates[1]), (coordinates[2], coordinates[1]),
-                           (coordinates[2], coordinates[3]), (coordinates[0], coordinates[3])])
+    # Apply the colormap to the normalized heatmap
+    colormap = plt.get_cmap(cmap)
+    heatmap_colored = colormap(normalized_heatmap)
 
-        rectangles.append([polygon, det[4]])
+    # Convert the heatmap from RGBA to BGR
+    heatmap_colored_bgr = cv2.cvtColor(np.uint8(heatmap_colored * 255), cv2.COLOR_RGBA2BGR)
+    downsampled_heatmap = heatmap_colored_bgr
+    # Set the kernel size (odd value)
+    kernel_size = (7, 7)
 
-    merged = merge_overlapping_rectangles(rectangles.copy())
+    # Set the standard deviation in X and Y directions
+    sigma_x = 0
+    sigma_y = 0
 
-    for polygon, conf in merged:
-        polygon = polygon.buffer(20).buffer(-10)
+    downsampled_heatmap = cv2.GaussianBlur(downsampled_heatmap, kernel_size, sigma_x, sigma_y)
 
-        point = polygon.centroid.coords
-        color1 = (0, 255*(1-conf), 255, 200)
-        color2 = (0, 255*(1-conf), 255, 0)
-        img1 = radial_gradient(im_rgb.size[0]//2, im_rgb.size[1]//2, list(polygon.exterior.coords), point, color1, color2).resize(im_rgb.size,  resample=Image.LANCZOS)
-        im_rgb.paste(img1, mask=img1)
+    # Upsample the downsampled heatmap to the original size
+    upsampled_heatmap = cv2.resize(downsampled_heatmap, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_LINEAR)
 
-    return im_rgb
+    # Overlay the upsampled heatmap onto the original image using OpenCV
+    alpha = 0.7
+    image_with_heatmap = cv2.addWeighted(image, 1 - alpha, upsampled_heatmap, alpha, 0)
+
+    return image_with_heatmap
