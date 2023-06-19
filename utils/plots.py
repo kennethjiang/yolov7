@@ -548,7 +548,7 @@ def plot_detections_color_coded(image, dets):
     heatmap = generate_heatmap(image, dets, downsample)
     normalized_heatmap = heatmap
 
-    cmap = "jet"
+    cmap = "hot"
 
     # Apply the colormap to the normalized heatmap
     colormap = plt.get_cmap(cmap)
