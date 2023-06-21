@@ -138,7 +138,7 @@ def detect(save_img=False):
                 img1 = plot_detections_color_coded(im0, det.tolist())
                 im0 = numpy.asarray(img1)
                 cv2.imshow(str(p), im0)
-                # cv2.imshow(str(p) + ' - Original', original_im)
+                cv2.imshow(str(p) + ' - Original', original_im)
                 key_pressed = cv2.waitKey(1)  # 1 millisecond
                 if key_pressed >= 0:
                     cv2.waitKey(0)
