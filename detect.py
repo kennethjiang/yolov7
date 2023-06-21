@@ -12,7 +12,7 @@ from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
-from utils.plots import plot_one_box, plot_detections_color_coded
+from utils.plots import plot_one_box, plot_detections_color_coded, plot_gauge
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 
@@ -137,8 +137,10 @@ def detect(save_img=False):
             if view_img:
                 img1 = plot_detections_color_coded(im0, det.tolist())
                 im0 = numpy.asarray(img1)
+                badness = det[:, 4].sum().item()
                 cv2.imshow(str(p), im0)
                 cv2.imshow(str(p) + ' - Original', original_im)
+                cv2.imshow("Gauge Image", plot_gauge(badness))
                 key_pressed = cv2.waitKey(1)  # 1 millisecond
                 if key_pressed >= 0:
                     cv2.waitKey(0)

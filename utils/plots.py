@@ -574,3 +574,43 @@ def plot_detections_color_coded(image, dets):
     image_with_heatmap = cv2.addWeighted(image, 1 - alpha, upsampled_heatmap, alpha, 0)
 
     return image_with_heatmap
+
+import plotly.graph_objects as go
+from plotly.io import to_image
+
+def plot_gauge(value):
+    value = np.log10(1.0+value)
+    green = 0.2
+    yellow = 0.5
+    if value <= green:
+        value =  value * 0.33 / green
+    elif value <= yellow:
+        value =  (value - green) * (0.66 - 0.33) / (yellow - green) + 0.33
+    else:
+        value =  (value - yellow) * (1 - 0.66) / (2 - yellow) + 0.66
+
+    # Create a gauge plot figure
+    fig = go.Figure(go.Indicator(
+        mode="gauge",
+        value=value,  # Current value on the gauge
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Is this first layer good?"},
+        gauge={
+            'axis': {'range': [None, 1]},
+            'steps': [
+                {'range': [0, 0.33], 'color': "green"},
+                {'range': [0.33, 0.66], 'color': "orange"},
+                {'range': [0.66, 1.0], 'color': "red"},
+                ],
+            'bar': {
+                'color': '#444',
+                'thickness': 0.5,
+                },  # Set the indicator color to white
+        }
+    ))
+
+    # Convert the figure to an image
+    image_bytes = to_image(fig, format='png')
+
+    # Create an OpenCV image from the bytes
+    return cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
